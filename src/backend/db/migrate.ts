@@ -2,31 +2,64 @@ import { Database } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { expandPath } from '../utils/path';
-import { existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { ensureDirectoryExists } from '../utils/fs';
+import { logger } from '../utils/logger';
 
-export async function initDatabase() {
-  const dbPath = expandPath(
-    process.env.DATABASE_URL || '~/.claude-usage-monitor/database.db'
-  );
+/** Default database path */
+const DEFAULT_DB_PATH = '~/.claude-usage-monitor/database.db';
 
-  // Create directory if doesn't exist
-  const dir = dirname(dbPath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+/** Default migrations folder */
+const DEFAULT_MIGRATIONS_FOLDER = './migrations';
+
+/**
+ * Migration error with context
+ */
+export class MigrationError extends Error {
+  constructor(message: string, public readonly cause?: Error) {
+    super(message);
+    this.name = 'MigrationError';
   }
+}
 
-  const sqlite = new Database(dbPath);
-  const db = drizzle(sqlite);
+/**
+ * Initializes the database and runs migrations
+ * @param dbPath - Optional custom database path
+ * @param migrationsFolder - Optional custom migrations folder
+ * @returns The initialized Drizzle database instance
+ * @throws MigrationError if initialization or migration fails
+ */
+export async function initDatabase(
+  dbPath?: string,
+  migrationsFolder: string = DEFAULT_MIGRATIONS_FOLDER
+): Promise<ReturnType<typeof drizzle>> {
+  const resolvedPath = expandPath(dbPath || process.env.DATABASE_URL || DEFAULT_DB_PATH);
 
-  // Run migrations
-  migrate(db, { migrationsFolder: './migrations' });
+  try {
+    logger.info('Initializing database...', { path: resolvedPath });
 
-  console.log('Database initialized at:', dbPath);
-  return db;
+    ensureDirectoryExists(resolvedPath);
+
+    const sqlite = new Database(resolvedPath);
+    const db = drizzle(sqlite);
+
+    logger.info('Running migrations...', { folder: migrationsFolder });
+    migrate(db, { migrationsFolder });
+
+    logger.info('Database initialized successfully', { path: resolvedPath });
+    return db;
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Database initialization failed', err);
+    throw new MigrationError(`Failed to initialize database at ${resolvedPath}`, err);
+  }
 }
 
 // Run if called directly
 if (import.meta.main) {
-  await initDatabase();
+  try {
+    await initDatabase();
+    process.exit(0);
+  } catch (error) {
+    process.exit(1);
+  }
 }
