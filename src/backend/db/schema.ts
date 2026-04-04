@@ -16,3 +16,32 @@ export const sessions = sqliteTable('sessions', {
   projectNameIdx: index('idx_sessions_project_name').on(table.projectName),
   lastActivityIdx: index('idx_sessions_last_activity').on(table.lastActivityAt),
 }));
+
+export const requests = sqliteTable('requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sessionId: text('session_id').notNull().references(() => sessions.id),
+  requestId: text('request_id').notNull(),
+  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull(),
+
+  model: text('model').notNull(),
+  role: text('role').notNull(),
+
+  inputTokens: integer('input_tokens').default(0),
+  outputTokens: integer('output_tokens').default(0),
+  cacheCreationTokens: integer('cache_creation_tokens').default(0),
+  cacheReadTokens: integer('cache_read_tokens').default(0),
+  totalTokens: integer('total_tokens').default(0),
+  estimatedCostUsd: integer('estimated_cost_usd', { mode: 'number' }).default(0),
+
+  cacheCreationEphemeral5m: integer('cache_creation_ephemeral_5m').default(0),
+  cacheCreationEphemeral1h: integer('cache_creation_ephemeral_1h').default(0),
+
+  isSubagent: integer('is_subagent', { mode: 'boolean' }).default(false),
+  agentId: text('agent_id'),
+  agentType: text('agent_type'),
+}, (table) => ({
+  sessionIdIdx: index('idx_requests_session_id').on(table.sessionId),
+  timestampIdx: index('idx_requests_timestamp').on(table.timestamp),
+  modelIdx: index('idx_requests_model').on(table.model),
+  isSubagentIdx: index('idx_requests_is_subagent').on(table.isSubagent),
+}));
