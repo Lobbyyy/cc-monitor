@@ -46,7 +46,7 @@ export async function insertSession(data: ParsedSession): Promise<void> {
     });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error('Failed to insert session', { sessionId: data.id, error: err.message });
+    logger.error({ sessionId: data.id, err: err.message }, 'Failed to insert session');
     throw new QueryError(`Failed to insert session ${data.id}`, err);
   }
 }
@@ -87,7 +87,7 @@ export async function insertRequest(data: ParsedRequest): Promise<number> {
     return result[0].id;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error('Failed to insert request', { sessionId: data.session_id, error: err.message });
+    logger.error({ sessionId: data.session_id, err: err.message }, 'Failed to insert request');
     throw new QueryError(`Failed to insert request for session ${data.session_id}`, err);
   }
 }
@@ -111,7 +111,7 @@ export async function getSession(sessionId: string): Promise<typeof sessions.$in
     return result[0] || null;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error('Failed to get session', { sessionId, error: err.message });
+    logger.error({ sessionId, err: err.message }, 'Failed to get session');
     throw new QueryError(`Failed to get session ${sessionId}`, err);
   }
 }
@@ -166,7 +166,7 @@ export async function getActiveSessions(): Promise<SessionWithStats[]> {
     return result;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error('Failed to get active sessions', { error: err.message });
+    logger.error({ err: err.message }, 'Failed to get active sessions');
     throw new QueryError('Failed to get active sessions', err);
   }
 }

@@ -36,10 +36,10 @@ export function getDatabase(): ReturnType<typeof drizzle> {
       const sqlite = new Database(dbPath);
       dbInstance = drizzle(sqlite, { schema });
 
-      logger.debug('Database connection established', { path: dbPath });
+      logger.debug({ path: dbPath }, 'Database connection established');
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error('Failed to initialize database', err);
+      logger.error({ err }, 'Failed to initialize database');
       throw new DatabaseError('Failed to initialize database', err);
     }
   }

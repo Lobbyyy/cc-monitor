@@ -35,21 +35,21 @@ export async function initDatabase(
   const resolvedPath = expandPath(dbPath || process.env.DATABASE_URL || DEFAULT_DB_PATH);
 
   try {
-    logger.info('Initializing database...', { path: resolvedPath });
+    logger.info({ path: resolvedPath }, 'Initializing database...');
 
     ensureDirectoryExists(resolvedPath);
 
     const sqlite = new Database(resolvedPath);
     const db = drizzle(sqlite);
 
-    logger.info('Running migrations...', { folder: migrationsFolder });
+    logger.info({ folder: migrationsFolder }, 'Running migrations...');
     migrate(db, { migrationsFolder });
 
-    logger.info('Database initialized successfully', { path: resolvedPath });
+    logger.info({ path: resolvedPath }, 'Database initialized successfully');
     return db;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error('Database initialization failed', err);
+    logger.error({ err }, 'Database initialization failed');
     throw new MigrationError(`Failed to initialize database at ${resolvedPath}`, err);
   }
 }
