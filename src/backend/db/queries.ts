@@ -170,3 +170,25 @@ export async function getActiveSessions(): Promise<SessionWithStats[]> {
     throw new QueryError('Failed to get active sessions', err);
   }
 }
+
+/**
+ * Update session activity (last_activity_at, current_model, etc.)
+ */
+export async function updateSessionActivity(
+  sessionId: string,
+  updates: {
+    last_activity_at: Date;
+    current_model: string | null;
+    has_subagents: boolean;
+  }
+): Promise<void> {
+  await db
+    .update(sessions)
+    .set({
+      lastActivityAt: updates.last_activity_at,
+      currentModel: updates.current_model,
+      hasSubagents: updates.has_subagents,
+      isActive: true,
+    })
+    .where(eq(sessions.id, sessionId));
+}
