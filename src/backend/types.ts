@@ -1,12 +1,32 @@
-// Model pricing structure
-export interface ModelPricing {
-  input: number;        // $ per token
-  output: number;       // $ per token
-  cache_write: number;  // $ per token
-  cache_read: number;   // $ per token
+/**
+ * Supported agent types for Claude Code sub-agents
+ */
+export enum AgentType {
+  PLANNER = 'planner',
+  CODE_REVIEWER = 'code-reviewer',
+  TDD_GUIDE = 'tdd-guide',
+  ARCHITECT = 'architect',
+  EXPLORER = 'explorer',
+  UNKNOWN = 'unknown',
 }
 
-// Token usage from JSONL
+/**
+ * Model pricing structure ($ per token)
+ */
+export interface ModelPricing {
+  /** Cost per input token */
+  input: number;
+  /** Cost per output token */
+  output: number;
+  /** Cost per cache write token */
+  cache_write: number;
+  /** Cost per cache read token */
+  cache_read: number;
+}
+
+/**
+ * Token usage data from Claude API response
+ */
 export interface TokenUsage {
   input_tokens: number;
   output_tokens: number;
@@ -18,7 +38,17 @@ export interface TokenUsage {
   };
 }
 
-// JSONL entry structure (from Claude Code)
+/**
+ * Message content types from Claude API
+ */
+export type MessageContent =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
+  | { type: 'tool_result'; tool_use_id: string; content: string };
+
+/**
+ * JSONL entry structure from Claude Code logs
+ */
 export interface JsonlEntry {
   type: 'user' | 'assistant' | string;
   sessionId: string;
@@ -32,11 +62,13 @@ export interface JsonlEntry {
     role: 'user' | 'assistant';
     model?: string;
     usage?: TokenUsage;
-    content?: any;
+    content?: MessageContent[] | string;
   };
 }
 
-// Parsed request data for DB insertion
+/**
+ * Parsed request data for database insertion
+ */
 export interface ParsedRequest {
   session_id: string;
   request_id: string;
@@ -56,7 +88,9 @@ export interface ParsedRequest {
   agent_type: string | null;
 }
 
-// Parsed session data
+/**
+ * Parsed session data for database insertion
+ */
 export interface ParsedSession {
   id: string;
   project_path: string;
