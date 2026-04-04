@@ -1,9 +1,12 @@
-import type { JsonlEntry, ParsedRequest } from '../types';
+import type { JsonlEntry, ParsedRequest, MessageContent } from '../types';
+import { AgentType } from '../types';
 import { calculateCost } from '../utils/pricing';
 
 /**
- * Determines if a JSONL entry should be processed
- * Only process assistant messages with model and usage data
+ * Determines if a JSONL entry should be processed.
+ * Only processes assistant messages with model and usage data.
+ * @param entry - The JSONL entry to check
+ * @returns true if the entry should be processed
  */
 export function shouldProcessEntry(entry: JsonlEntry): boolean {
   if (entry.type !== 'assistant') return false;
@@ -13,7 +16,9 @@ export function shouldProcessEntry(entry: JsonlEntry): boolean {
 }
 
 /**
- * Extract project name from file path
+ * Extracts project name from a file path
+ * @param path - The full file path
+ * @returns The project name (last directory segment)
  */
 export function extractProjectName(path: string): string {
   const cleaned = path.endsWith('/') ? path.slice(0, -1) : path;
@@ -22,29 +27,56 @@ export function extractProjectName(path: string): string {
 }
 
 /**
- * Infer agent type from task content or known patterns
+ * Infers agent type from task content or known patterns
+ * @param agentId - The agent ID
+ * @param entry - The JSONL entry
+ * @returns The inferred agent type
  */
-export function inferAgentType(agentId: string, entry: JsonlEntry): string {
-  const content = JSON.stringify(entry.message?.content || '').toLowerCase();
+export function inferAgentType(agentId: string, entry: JsonlEntry): AgentType {
+  const content = stringifyContent(entry.message?.content);
+  const lowerContent = content.toLowerCase();
 
-  if (content.includes('plan') || content.includes('implementation plan')) {
-    return 'planner';
+  if (lowerContent.includes('plan') || lowerContent.includes('implementation plan')) {
+    return AgentType.PLANNER;
   }
-  if (content.includes('review') || content.includes('code quality')) {
-    return 'code-reviewer';
+  if (lowerContent.includes('review') || lowerContent.includes('code quality')) {
+    return AgentType.CODE_REVIEWER;
   }
-  if (content.includes('test') || content.includes('tdd')) {
-    return 'tdd-guide';
+  if (lowerContent.includes('test') || lowerContent.includes('tdd')) {
+    return AgentType.TDD_GUIDE;
   }
-  if (content.includes('architect') || content.includes('system design')) {
-    return 'architect';
+  if (lowerContent.includes('architect') || lowerContent.includes('system design')) {
+    return AgentType.ARCHITECT;
+  }
+  if (lowerContent.includes('explore') || lowerContent.includes('search')) {
+    return AgentType.EXPLORER;
   }
 
-  return 'unknown';
+  return AgentType.UNKNOWN;
 }
 
 /**
- * Parse a JSONL entry into structured request data
+ * Safely stringify message content for analysis
+ * @param content - The message content
+ * @returns String representation of the content
+ */
+function stringifyContent(content: MessageContent[] | string | undefined): string {
+  if (!content) return '';
+  if (typeof content === 'string') return content;
+
+  return content
+    .map((item) => {
+      if (item.type === 'text') return item.text;
+      if (item.type === 'tool_use') return item.name + ': ' + JSON.stringify(item.input);
+      return '';
+    })
+    .join(' ');
+}
+
+/**
+ * Parses a JSONL entry into structured request data for database insertion
+ * @param entry - The JSONL entry to parse
+ * @returns ParsedRequest object or null if entry should not be processed
  */
 export function parseJsonlEntry(entry: JsonlEntry): ParsedRequest | null {
   if (!shouldProcessEntry(entry)) {
@@ -60,6 +92,8 @@ export function parseJsonlEntry(entry: JsonlEntry): ParsedRequest | null {
   const cacheReadTokens = usage.cache_read_input_tokens || 0;
 
   const cost = calculateCost(model, usage);
+
+  const agentType = entry.isSidechain ? inferAgentType(entry.agentId || '', entry) : null;
 
   return {
     session_id: entry.sessionId,
@@ -77,6 +111,6 @@ export function parseJsonlEntry(entry: JsonlEntry): ParsedRequest | null {
     cache_creation_ephemeral_1h: usage.cache_creation?.ephemeral_1h_input_tokens || 0,
     is_subagent: entry.isSidechain || false,
     agent_id: entry.agentId || null,
-    agent_type: entry.isSidechain ? inferAgentType(entry.agentId || '', entry) : null,
+    agent_type: agentType,
   };
 }
