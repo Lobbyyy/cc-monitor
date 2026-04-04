@@ -19,7 +19,14 @@ describe('JSONL Parser', () => {
     });
 
     it('should skip entries without model/usage', () => {
-      const entry = { type: 'assistant', message: {} };
+      const entry = {
+        type: 'assistant',
+        sessionId: 'test-session',
+        timestamp: '2024-01-01T00:00:00Z',
+        message: {
+          role: 'assistant' as const
+        }
+      };
       expect(shouldProcessEntry(entry)).toBe(false);
     });
   });
