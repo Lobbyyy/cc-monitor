@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sum, count } from 'drizzle-orm';
 import { db } from './index';
 import { sessions, requests } from './schema';
 import type { ParsedSession, ParsedRequest } from '../types';
@@ -66,4 +66,32 @@ export async function getSession(sessionId: string) {
     .limit(1);
 
   return result[0] || null;
+}
+
+/**
+ * Get all active sessions with aggregated stats
+ */
+export async function getActiveSessions() {
+  const result = await db
+    .select({
+      id: sessions.id,
+      projectPath: sessions.projectPath,
+      projectName: sessions.projectName,
+      sessionHash: sessions.sessionHash,
+      startedAt: sessions.startedAt,
+      lastActivityAt: sessions.lastActivityAt,
+      isActive: sessions.isActive,
+      modelConfig: sessions.modelConfig,
+      currentModel: sessions.currentModel,
+      hasSubagents: sessions.hasSubagents,
+      totalTokens: sum(requests.totalTokens).mapWith(Number),
+      totalCost: sum(requests.estimatedCostUsd).mapWith(Number),
+      requestCount: count(requests.id).mapWith(Number),
+    })
+    .from(sessions)
+    .leftJoin(requests, eq(requests.sessionId, sessions.id))
+    .where(eq(sessions.isActive, true))
+    .groupBy(sessions.id);
+
+  return result;
 }
