@@ -1,29 +1,58 @@
 import { Database } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { expandPath } from '../utils/path';
-import { existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { ensureDirectoryExists } from '../utils/fs';
+import { logger } from '../utils/logger';
 import * as schema from './schema';
 
+/** Database instance singleton */
 let dbInstance: ReturnType<typeof drizzle> | null = null;
 
-export function getDatabase() {
+/** Default database path */
+const DEFAULT_DB_PATH = '~/.claude-usage-monitor/database.db';
+
+/**
+ * Database initialization error
+ */
+export class DatabaseError extends Error {
+  constructor(message: string, public readonly cause?: Error) {
+    super(message);
+    this.name = 'DatabaseError';
+  }
+}
+
+/**
+ * Gets or creates the database instance (singleton)
+ * @returns The Drizzle database instance
+ * @throws DatabaseError if database cannot be initialized
+ */
+export function getDatabase(): ReturnType<typeof drizzle> {
   if (!dbInstance) {
-    const dbPath = expandPath(
-      process.env.DATABASE_URL || '~/.claude-usage-monitor/database.db'
-    );
+    try {
+      const dbPath = expandPath(process.env.DATABASE_URL || DEFAULT_DB_PATH);
 
-    // Create directory if doesn't exist
-    const dir = dirname(dbPath);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+      ensureDirectoryExists(dbPath);
+
+      const sqlite = new Database(dbPath);
+      dbInstance = drizzle(sqlite, { schema });
+
+      logger.debug('Database connection established', { path: dbPath });
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to initialize database', err);
+      throw new DatabaseError('Failed to initialize database', err);
     }
-
-    const sqlite = new Database(dbPath);
-    dbInstance = drizzle(sqlite, { schema });
   }
 
   return dbInstance;
 }
 
+/**
+ * Resets the database instance (for testing)
+ */
+export function resetDatabaseInstance(): void {
+  dbInstance = null;
+}
+
+/** Pre-initialized database instance */
 export const db = getDatabase();
