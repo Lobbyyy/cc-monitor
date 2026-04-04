@@ -45,3 +45,32 @@ export const requests = sqliteTable('requests', {
   modelIdx: index('idx_requests_model').on(table.model),
   isSubagentIdx: index('idx_requests_is_subagent').on(table.isSubagent),
 }));
+
+export const modelTransitions = sqliteTable('model_transitions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sessionId: text('session_id').notNull().references(() => sessions.id),
+  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull(),
+  fromModel: text('from_model'),
+  toModel: text('to_model').notNull(),
+  trigger: text('trigger').notNull(),
+  contextNote: text('context_note'),
+}, (table) => ({
+  sessionIdIdx: index('idx_transitions_session_id').on(table.sessionId),
+  timestampIdx: index('idx_transitions_timestamp').on(table.timestamp),
+}));
+
+export const subagents = sqliteTable('subagents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  sessionId: text('session_id').notNull().references(() => sessions.id),
+  agentId: text('agent_id').notNull(),
+  agentType: text('agent_type').notNull(),
+  model: text('model').notNull(),
+  spawnedAt: integer('spawned_at', { mode: 'timestamp' }).notNull(),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  totalTokens: integer('total_tokens').default(0),
+  totalCostUsd: integer('total_cost_usd', { mode: 'number' }).default(0),
+  status: text('status').notNull().default('running'),
+}, (table) => ({
+  sessionIdIdx: index('idx_subagents_session_id').on(table.sessionId),
+  agentIdIdx: index('idx_subagents_agent_id').on(table.agentId),
+}));
