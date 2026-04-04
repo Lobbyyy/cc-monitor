@@ -1,6 +1,8 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { Database } from 'bun:sqlite';
+import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { expandPath } from '../utils/path';
+import { existsSync, mkdirSync } from 'fs';
+import { dirname } from 'path';
 import * as schema from './schema';
 
 let dbInstance: ReturnType<typeof drizzle> | null = null;
@@ -10,6 +12,12 @@ export function getDatabase() {
     const dbPath = expandPath(
       process.env.DATABASE_URL || '~/.claude-usage-monitor/database.db'
     );
+
+    // Create directory if doesn't exist
+    const dir = dirname(dbPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
 
     const sqlite = new Database(dbPath);
     dbInstance = drizzle(sqlite, { schema });
