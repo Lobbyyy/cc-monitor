@@ -1,4 +1,11 @@
 import { SessionTracker } from './session-tracker';
+import { logger } from '../utils/logger';
+
+/** Default cleanup interval in milliseconds (60 seconds) */
+const DEFAULT_CLEANUP_INTERVAL_MS = 60 * 1000;
+
+/** Max consecutive failures before warning */
+const MAX_CONSECUTIVE_FAILURES = 3;
 
 /**
  * Background job to mark sessions inactive after 30 minutes of no activity
@@ -6,25 +13,44 @@ import { SessionTracker } from './session-tracker';
 export class SessionCleanupJob {
   private interval: Timer | null = null;
   private tracker = new SessionTracker();
+  private consecutiveFailures = 0;
 
   /**
-   * Start the cleanup job (runs every minute)
+   * Creates a new SessionCleanupJob
+   * @param intervalMs - Cleanup interval in milliseconds (default: 60000)
+   */
+  constructor(private intervalMs: number = DEFAULT_CLEANUP_INTERVAL_MS) {}
+
+  /**
+   * Start the cleanup job
    */
   start(): void {
     if (this.interval) {
-      console.warn('Cleanup job already running');
+      logger.warn('Cleanup job already running');
       return;
     }
 
-    console.log('Starting session cleanup job (runs every 60s)');
+    logger.info('Starting session cleanup job', { intervalMs: this.intervalMs });
 
     this.interval = setInterval(async () => {
       try {
         await this.tracker.markInactiveSessions();
+        this.consecutiveFailures = 0;
       } catch (error) {
-        console.error('Error in session cleanup job:', error);
+        this.consecutiveFailures++;
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error('Error in session cleanup job', {
+          error: err.message,
+          consecutiveFailures: this.consecutiveFailures,
+        });
+
+        if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+          logger.warn('Session cleanup job has failed multiple times', {
+            failures: this.consecutiveFailures,
+          });
+        }
       }
-    }, 60 * 1000); // Every 60 seconds
+    }, this.intervalMs);
   }
 
   /**
@@ -34,7 +60,14 @@ export class SessionCleanupJob {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
-      console.log('Session cleanup job stopped');
+      logger.info('Session cleanup job stopped');
     }
+  }
+
+  /**
+   * Get current consecutive failure count (for monitoring)
+   */
+  getFailureCount(): number {
+    return this.consecutiveFailures;
   }
 }
