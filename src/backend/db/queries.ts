@@ -46,7 +46,7 @@ export async function insertSession(data: ParsedSession): Promise<void> {
     });
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error({ sessionId: data.id, err: err.message }, 'Failed to insert session');
+    logger.error('Failed to insert session', { sessionId: data.id, error: err.message });
     throw new QueryError(`Failed to insert session ${data.id}`, err);
   }
 }
@@ -87,7 +87,7 @@ export async function insertRequest(data: ParsedRequest): Promise<number> {
     return result[0].id;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error({ sessionId: data.session_id, err: err.message }, 'Failed to insert request');
+    logger.error('Failed to insert request', { sessionId: data.session_id, error: err.message });
     throw new QueryError(`Failed to insert request for session ${data.session_id}`, err);
   }
 }
@@ -111,7 +111,7 @@ export async function getSession(sessionId: string): Promise<typeof sessions.$in
     return result[0] || null;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error({ sessionId, err: err.message }, 'Failed to get session');
+    logger.error('Failed to get session', { sessionId, error: err.message });
     throw new QueryError(`Failed to get session ${sessionId}`, err);
   }
 }
@@ -166,13 +166,16 @@ export async function getActiveSessions(): Promise<SessionWithStats[]> {
     return result;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    logger.error({ err: err.message }, 'Failed to get active sessions');
+    logger.error('Failed to get active sessions', { error: err.message });
     throw new QueryError('Failed to get active sessions', err);
   }
 }
 
 /**
- * Update session activity (last_activity_at, current_model, etc.)
+ * Updates session activity timestamp and current state
+ * @param sessionId - The session ID to update
+ * @param updates - Activity updates including timestamp, model, and subagents flag
+ * @throws QueryError if the operation fails
  */
 export async function updateSessionActivity(
   sessionId: string,
@@ -182,13 +185,21 @@ export async function updateSessionActivity(
     has_subagents: boolean;
   }
 ): Promise<void> {
-  await db
-    .update(sessions)
-    .set({
-      lastActivityAt: updates.last_activity_at,
-      currentModel: updates.current_model,
-      hasSubagents: updates.has_subagents,
-      isActive: true,
-    })
-    .where(eq(sessions.id, sessionId));
+  try {
+    validateSessionId(sessionId);
+
+    await db
+      .update(sessions)
+      .set({
+        lastActivityAt: updates.last_activity_at,
+        currentModel: updates.current_model,
+        hasSubagents: updates.has_subagents,
+        isActive: true,
+      })
+      .where(eq(sessions.id, sessionId));
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error('Failed to update session activity', { sessionId, error: err.message });
+    throw new QueryError(`Failed to update session activity for ${sessionId}`, err);
+  }
 }
