@@ -5,6 +5,7 @@ import { ModelTransitionDetector } from './model-detector';
 import { SessionTracker } from './session-tracker';
 import { parseJsonlEntry } from '../parsers/jsonl-parser';
 import { insertRequest } from '../db/queries';
+import { logger } from '../utils/logger';
 
 export class FileWatcher {
   private watcher: FSWatcher | null = null;
@@ -123,6 +124,10 @@ export class FileWatcher {
     // Insert request
     await insertRequest(parsed);
 
-    console.log(`Processed: ${parsed.model} - ${parsed.total_tokens} tokens - $${parsed.estimated_cost_usd.toFixed(6)}`);
+    logger.info('Processed request', {
+      model: parsed.model,
+      tokens: parsed.total_tokens,
+      cost: parsed.estimated_cost_usd.toFixed(6),
+    });
   }
 }
