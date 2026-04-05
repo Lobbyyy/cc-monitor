@@ -30,7 +30,7 @@ export class SessionCleanupJob {
       return;
     }
 
-    logger.info('Starting session cleanup job', { intervalMs: this.intervalMs });
+    logger.info({ intervalMs: this.intervalMs }, 'Starting session cleanup job');
 
     this.interval = setInterval(async () => {
       try {
@@ -39,15 +39,15 @@ export class SessionCleanupJob {
       } catch (error) {
         this.consecutiveFailures++;
         const err = error instanceof Error ? error : new Error(String(error));
-        logger.error('Error in session cleanup job', {
+        logger.error({
           error: err.message,
           consecutiveFailures: this.consecutiveFailures,
-        });
+        }, 'Error in session cleanup job');
 
         if (this.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-          logger.warn('Session cleanup job has failed multiple times', {
+          logger.warn({
             failures: this.consecutiveFailures,
-          });
+          }, 'Session cleanup job has failed multiple times');
         }
       }
     }, this.intervalMs);

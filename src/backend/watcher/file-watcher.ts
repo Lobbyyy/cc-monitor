@@ -22,7 +22,7 @@ export class FileWatcher {
    * Start watching the directory for JSONL file changes
    */
   async start(): Promise<void> {
-    console.log(`Starting file watcher on: ${this.watchDir}`);
+    logger.info({ watchDir: this.watchDir }, 'Starting file watcher');
 
     // Process existing files first
     await this.processExistingFiles();
@@ -47,7 +47,7 @@ export class FileWatcher {
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
-      console.log('File watcher stopped');
+      logger.info('File watcher stopped');
     }
   }
 
@@ -124,10 +124,10 @@ export class FileWatcher {
     // Insert request
     await insertRequest(parsed);
 
-    logger.info('Processed request', {
+    logger.info({
       model: parsed.model,
       tokens: parsed.total_tokens,
       cost: parsed.estimated_cost_usd.toFixed(6),
-    });
+    }, 'Processed request');
   }
 }
