@@ -30,18 +30,3 @@ export function validateSessionId(sessionId: unknown): asserts sessionId is stri
 export function validateModel(model: unknown): asserts model is string {
   validateNonEmptyString(model, 'Model name');
 }
-
-/**
- * Validates that a number is non-negative
- * @param value - The value to validate
- * @param fieldName - Name of the field for error messages
- * @throws Error if validation fails
- */
-export function validateNonNegativeNumber(value: unknown, fieldName: string): asserts value is number {
-  if (typeof value !== 'number' || isNaN(value)) {
-    throw new Error(`${fieldName} must be a number`);
-  }
-  if (value < 0) {
-    throw new Error(`${fieldName} cannot be negative`);
-  }
-}

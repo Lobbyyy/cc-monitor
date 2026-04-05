@@ -47,12 +47,5 @@ export function getDatabase(): ReturnType<typeof drizzle> {
   return dbInstance;
 }
 
-/**
- * Resets the database instance (for testing)
- */
-export function resetDatabaseInstance(): void {
-  dbInstance = null;
-}
-
 /** Pre-initialized database instance */
 export const db = getDatabase();

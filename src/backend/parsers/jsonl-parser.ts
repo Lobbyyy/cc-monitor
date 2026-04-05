@@ -32,7 +32,7 @@ export function extractProjectName(path: string): string {
  * @param entry - The JSONL entry
  * @returns The inferred agent type
  */
-export function inferAgentType(agentId: string, entry: JsonlEntry): AgentType {
+function inferAgentType(agentId: string, entry: JsonlEntry): AgentType {
   const content = stringifyContent(entry.message?.content);
   const lowerContent = content.toLowerCase();
 

@@ -59,21 +59,3 @@ export function calculateCost(model: string, usage: TokenUsage): number {
     cacheReadTokens * pricing.cache_read
   );
 }
-
-/**
- * Gets the pricing information for a specific model
- * @param model - The model identifier
- * @returns ModelPricing object or undefined if model not found
- */
-export function getModelPricing(model: string): ModelPricing | undefined {
-  return MODEL_PRICING[model];
-}
-
-/**
- * Checks if a model has pricing information available
- * @param model - The model identifier
- * @returns true if pricing data exists for the model
- */
-export function hasModelPricing(model: string): boolean {
-  return model in MODEL_PRICING;
-}
