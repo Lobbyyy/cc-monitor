@@ -40,8 +40,9 @@ describe('SessionTracker', () => {
     const before = await getSession('existing-session');
     const beforeTime = before?.lastActivityAt;
 
-    // Wait to ensure timestamp changes
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Allow time for timestamp to change (SQLite has second-level precision)
+    const TIMESTAMP_RESOLUTION_DELAY_MS = 100;
+    await new Promise(resolve => setTimeout(resolve, TIMESTAMP_RESOLUTION_DELAY_MS));
 
     // Update activity
     await tracker.updateActivity({
