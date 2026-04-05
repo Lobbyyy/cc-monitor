@@ -25,6 +25,14 @@ describe('Integration: File Watcher', () => {
     watcher?.stop();
   });
 
+  /**
+   * Tests the core file watching flow:
+   * 1. Write JSONL entry to file
+   * 2. Start watcher (processes existing files)
+   * 3. Verify session created in database
+   * 4. Append another entry (triggers file change event)
+   * 5. Verify request count incremented
+   */
   it('should process new JSONL entries when file is updated', async () => {
     // Write initial entry
     const entry1 = JSON.stringify({
@@ -87,6 +95,14 @@ describe('Integration: File Watcher', () => {
     expect(updated[0].requestCount).toBe(2);
   });
 
+  /**
+   * Tests model transition detection:
+   * 1. Write two entries with different models (Opus → Sonnet)
+   * 2. Start watcher to process both
+   * 3. Verify transitions table has:
+   *    - session_start (first model seen)
+   *    - transition (model changed)
+   */
   it('should detect model transitions', async () => {
     const entry1 = JSON.stringify({
       type: 'assistant',
